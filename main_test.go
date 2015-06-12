@@ -3,17 +3,17 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
-	"fmt"
 )
 
 func TestMainTimer(t *testing.T) {
 	args := []string{"-version"}
 	os.Args = append(os.Args, args...)
 
-	expected := fmt.Sprintf("pokenv version %s\n", version)
+	expected := fmt.Sprintf("peekenv version %s\n", version)
 
 	// this can be done only once or test framework will panic
 	actual := captureOutput(main)

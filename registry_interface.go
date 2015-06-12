@@ -21,4 +21,5 @@ const (
 
 type Registry interface {
 	GetString(path regPath, valueName string) (value string, err error)
+	EnumValues(ath regPath) []string
 }

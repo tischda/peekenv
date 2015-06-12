@@ -12,11 +12,15 @@ func TestSetDeleteValue(t *testing.T) {
 
 	expected := `%USERPROFILE%\AppData\Local\Temp`
 
-	// set value
+	// get value
 	actual, err := registry.GetString(PATH_USER, "TEMP")
 	if err != nil {
 		t.Errorf("Error in SetString", err)
 	}
+	assertEquals(t, expected, actual)
+}
+
+func assertEquals(t *testing.T, expected string, actual string) {
 	if actual != expected {
 		t.Errorf("Expected: %q, was: %q", expected, actual)
 	}
