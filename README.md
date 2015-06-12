@@ -1,4 +1,4 @@
-﻿# peekenv [![Build status](https://ci.appveyor.com/api/projects/status/hrtwo6hrx10d7i88?svg=true)](https://ci.appveyor.com/project/tischda/peekenv)
+﻿# peekenv [![Build status](https://ci.appveyor.com/api/projects/status/4but7lwfch3n65h0?svg=true)](https://ci.appveyor.com/project/tischda/peekenv)
 
 Windows utility written in [Go](https://www.golang.org) to peek
 environment variables from the registry.
