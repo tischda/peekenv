@@ -3,12 +3,12 @@
 Windows utility written in [Go](https://www.golang.org) to peek
 environment variables from the registry.
 
-### Compile
+### Install
 
-Tested with GO 1.4.2. There are no dependencies.
+There are no dependencies.
 
 ~~~
-go build
+go get github.com/tischda/peekenv
 ~~~
 
 ### Usage
