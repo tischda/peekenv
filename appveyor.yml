@@ -43,15 +43,14 @@ install:
 build_script:
   - cd %APPVEYOR_BUILD_FOLDER%
   - SET PATH=%GOPATH%\bin;%PATH%
-  - go build -o pokenv.exe
+  - go build -o peekenv.exe
 
 # to run your custom scripts instead of automatic tests
 test_script:
   - go test -v -cover
   - go test -v | go2xunit -xunitnet > xunit-report.xml
   - peekenv.exe -version
-  - pokenv.exe -hkcu 
-  - pokenv.exe -hklm
+  - peekenv.exe -var pathext -hklm -
 
 # artifacts configuration
 artifacts:
