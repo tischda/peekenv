@@ -6,13 +6,9 @@ import (
 	"testing"
 )
 
-func TestSetDeleteValue(t *testing.T) {
-
+func TestGetValue(t *testing.T) {
 	var registry = realRegistry{}
-
 	expected := `%USERPROFILE%\AppData\Local\Temp`
-
-	// get value
 	actual, err := registry.GetString(PATH_USER, "TEMP")
 	if err != nil {
 		t.Errorf("Error in SetString", err)

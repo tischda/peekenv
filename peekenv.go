@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 )
 
 var sectionRegex = regexp.MustCompile(`^\[(.*)\]$`)
@@ -17,6 +18,7 @@ var PATH_MACHINE = regPath{HKEY_LOCAL_MACHINE, `SYSTEM\CurrentControlSet\Control
 
 type peekenv struct {
 	sections []Section
+	variable string
 	registry Registry
 }
 
@@ -25,13 +27,9 @@ type Section struct {
 	lines []string
 }
 
-func (p *peekenv) getEnv(path regPath, fileName string) {
-	file, err := os.Create(fileName)
-	checkFatal(err)
-	defer file.Close()
-
+func (p *peekenv) exportEnv(path regPath, filename string) {
 	p.populateSectionsFrom(path)
-	io.WriteString(file, p.String())
+	p.writeFile(path, filename)
 }
 
 func (p *peekenv) populateSectionsFrom(path regPath) {
@@ -40,11 +38,35 @@ func (p *peekenv) populateSectionsFrom(path regPath) {
 		sort.Strings(values)
 	}
 	for _, sectionTitle := range values {
+		if p.variable != "" && !strings.EqualFold(p.variable, sectionTitle) {
+			continue
+		}
 		data, err := p.registry.GetString(path, sectionTitle)
 		checkFatal(err)
 		section := Section{title: sectionTitle, lines: strings.Split(data, ";")}
 		p.sections = append(p.sections, section)
 	}
+}
+
+func (p *peekenv) writeFile(path regPath, filename string) {
+	var file *os.File
+	if filename == "-" {
+		file = os.Stdout
+	} else {
+		f, err := os.Create(filename)
+		checkFatal(err)
+		file = f
+		defer file.Close()
+	}
+
+	now := fmt.Sprintf(" - Exported %s\n\n", time.Now())
+	switch path.hKeyIdx {
+	case HKEY_CURRENT_USER:
+		io.WriteString(file, `# HKEY_CURRENT_USER\`+path.lpSubKey+now)
+	case HKEY_LOCAL_MACHINE:
+		io.WriteString(file, `# HKEY_LOCAL_MACHINE\`+path.lpSubKey+now)
+	}
+	io.WriteString(file, p.String())
 }
 
 func (p *peekenv) String() string {
