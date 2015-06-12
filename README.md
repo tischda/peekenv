@@ -14,13 +14,39 @@ go build
 ### Usage
 
 ~~~
-
-
+Usage: peekenv.exe [-var variable] [-hkcu|-hklm] outfile
+  outfile: the output file (use '-' for stdout)
+  -hkcu="REQUIRED": extract HKEY_CURRENT_USER environment to file
+  -hklm="REQUIRED": extract HKEY_LOCAL_MACHINE environment to file
+  -var="": extract only specified variable
+  -version=false: print version and exit
 ~~~
 
-### Other setters
+Example:
 
-* http://sourceforge.net/projects/pathmanager/files/?source=navbar
-* http://www.rapidee.com/en/about
-* http://p-nand-q.com/download/gtools/pathed.html
-* http://ss64.com/nt/setx.html
+~~~
+u:\>peekenv.exe -var pathext -hklm -
+# HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment - Exported 2015-06-12 10:34:30.7803973 +0200 CEST
+
+[PATHEXT]
+.COM
+.EXE
+.BAT
+.CMD
+.VBS
+.VBE
+.JS
+.JSE
+.WSF
+.WSH
+.MSC
+.RB
+.RBW
+~~~
+
+Note that the value `.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.RB;.RBW` is converted to multiples lines.
+This is the input format used by [pokenv](https://github.com/tischda/pokenv). 
+
+### Other readers
+
+Built-in, see: `reg query /?`
