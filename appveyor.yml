@@ -21,12 +21,12 @@ install:
   - go get -u github.com/tischda/go2xunit
 
 build_script:
-  - go build -o peekenv.exe
+  - go build -ldflags "-s" -o peekenv.exe
 
 test_script:
+  - peekenv.exe -version
   - go test -v -cover
   - go test -v | go2xunit -xunitnet > xunit-report.xml
-  - peekenv.exe -version
   - peekenv.exe -var pathext -hklm -
 
 artifacts:
