@@ -21,7 +21,7 @@ install:
   - go get -u github.com/tischda/go2xunit
 
 build_script:
-  - go build -ldflags "-s" -o peekenv.exe
+  - build.bat
 
 test_script:
   - peekenv.exe -version

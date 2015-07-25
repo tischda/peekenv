@@ -9,7 +9,9 @@ import (
 	"os"
 )
 
-const version string = "1.0.0"
+// http://technosophos.com/2014/06/11/compile-time-string-in-go.html
+// go build -ldflags "-x main.version $(git describe --tags)"
+var version string
 
 func main() {
 	hkcu := flag.String("hkcu", "REQUIRED", "extract HKEY_CURRENT_USER environment to file")
