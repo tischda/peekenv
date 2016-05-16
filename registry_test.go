@@ -16,8 +16,3 @@ func TestGetValue(t *testing.T) {
 	assertEquals(t, expected, actual)
 }
 
-func assertEquals(t *testing.T, expected string, actual string) {
-	if actual != expected {
-		t.Errorf("Expected: %q, was: %q", expected, actual)
-	}
-}
