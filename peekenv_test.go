@@ -49,3 +49,9 @@ c:\temp
 `
 	assertEquals(t, expected, sut.String())
 }
+
+func assertEquals(t *testing.T, expected string, actual string) {
+	if actual != expected {
+		t.Errorf("Expected: %q, was: %q", expected, actual)
+	}
+}
