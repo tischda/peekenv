@@ -23,7 +23,7 @@ var hKeyTable = []syscall.Handle{
 
 // Read string from Windows registry (no expansion).
 // Thanks to http://npf.io/2012/11/go-win-stuff/
-func (realRegistry) GetString(path regPath, valueName string) (value string, err error) {
+func (realRegistry) GetString(path regKey, valueName string) (value string, err error) {
 	handle := openKey(path, syscall.KEY_QUERY_VALUE)
 	defer syscall.RegCloseKey(handle)
 
@@ -61,7 +61,7 @@ func (realRegistry) GetString(path regPath, valueName string) (value string, err
 
 // Enumerates the values for the specified registry key index. The function
 // returns an array of valueNames.
-func (realRegistry) EnumValues(path regPath) []string {
+func (realRegistry) EnumValues(path regKey) []string {
 	var values []string
 	name, err := getNextEnumValue(path, uint32(0))
 	for i := 1; err == nil; i++ {
@@ -73,7 +73,7 @@ func (realRegistry) EnumValues(path regPath) []string {
 
 // Enumerates the values for the specified registry key. The function
 // returns one indexed value name for the key each time it is called.
-func getNextEnumValue(path regPath, index uint32) (string, error) {
+func getNextEnumValue(path regKey, index uint32) (string, error) {
 	handle := openKey(path, syscall.KEY_QUERY_VALUE)
 	defer syscall.RegCloseKey(handle)
 
@@ -96,7 +96,7 @@ func getNextEnumValue(path regPath, index uint32) (string, error) {
 
 // Opens a Windows registry key and returns a handle. You must close
 // the handle with `defer syscall.RegCloseKey(handle)` in the calling code.
-func openKey(path regPath, desiredAccess uint32) syscall.Handle {
+func openKey(path regKey, desiredAccess uint32) syscall.Handle {
 	var handle syscall.Handle
 
 	// https://msdn.microsoft.com/en-us/library/windows/desktop/ms724897(v=vs.85).aspx

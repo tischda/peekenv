@@ -3,7 +3,7 @@ package main
 // A registry path is composed of an hKey index and the string representation
 // of the path withing that hKey. We use hKey indexes to avoid dependency on
 // non-portable syscall values.
-type regPath struct {
+type regKey struct {
 	hKeyIdx  uint8
 	lpSubKey string
 }
@@ -20,6 +20,6 @@ const (
 )
 
 type Registry interface {
-	GetString(path regPath, valueName string) (value string, err error)
-	EnumValues(ath regPath) []string
+	GetString(path regKey, valueName string) (value string, err error)
+	EnumValues(ath regKey) []string
 }

@@ -1,4 +1,4 @@
-﻿# peekenv [![Build status](https://ci.appveyor.com/api/projects/status/4but7lwfch3n65h0?svg=true)](https://ci.appveyor.com/project/tischda/peekenv)
+# peekenv [![Build status](https://ci.appveyor.com/api/projects/status/4but7lwfch3n65h0?svg=true)](https://ci.appveyor.com/project/tischda/peekenv)
 
 Windows utility written in [Go](https://www.golang.org) to peek
 environment variables from the registry.
@@ -14,37 +14,44 @@ go get github.com/tischda/peekenv
 ### Usage
 
 ~~~
-Usage: peekenv.exe [-var variable] [-hkcu|-hklm] outfile
-  outfile: the output file (use '-' for stdout)
-  -hkcu="REQUIRED": extract HKEY_CURRENT_USER environment to file
-  -hklm="REQUIRED": extract HKEY_LOCAL_MACHINE environment to file
-  -var="": extract only specified variable
-  -version=false: print version and exit
+Usage: peekenv [-h] [-m] [-f outfile] [variables...]
+
+OPTIONS:
+  -f string
+        file to dump the variables from the Windows environment (default "REQUIRED")
+  -h
+  -help
+        displays this help message
+  -i
+  -info
+        print info header
+  -m
+  -machine
+        specifies that the variables should be read system wide (HKEY_LOCAL_MACHINE)
+  -v
+  -version
+        print version and exit
 ~~~
 
 Example:
 
 ~~~
-u:\>peekenv.exe -var pathext -hklm -
-# HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment - Exported 2015-06-12 10:34:30.7803973 +0200 CEST
-
-[PATHEXT]
-.COM
-.EXE
-.BAT
-.CMD
-.VBS
-.VBE
-.JS
-.JSE
-.WSF
-.WSH
-.MSC
-.RB
-.RBW
+# peekenv.exe -m pathext    
+[PATHEXT]                   
+.COM                        
+.EXE                        
+.BAT                        
+.CMD                        
+.VBS                        
+.VBE                        
+.JS                         
+.JSE                        
+.WSF                        
+.WSH                        
+.MSC                        
 ~~~
 
-Note that the value `.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.RB;.RBW` is converted to multiples lines.
+Note that the value `.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC` is converted to multiples lines.
 This is the input format used by [pokenv](https://github.com/tischda/pokenv). 
 
 ### Other readers

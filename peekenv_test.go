@@ -10,20 +10,19 @@ import (
 var sut peekenv
 
 func init() {
-
 	log.SetOutput(ioutil.Discard)
 }
 
 var testSections = []Section{
-	Section{title: `PATH`, lines: []string{`C:\Program Files\ConEmu`, `C:\Program Files\ConEmu\ConEmu`, `C:\Windows\SYSTEM32`, `C:\Windows`}},
-	Section{title: `TEMP`, lines: []string{`%USERPROFILE%\AppData\Local\Temp`}},
-	Section{title: `TMP`, lines: []string{`c:\temp`}},
+	{title: `PATH`, lines: []string{`C:\Program Files\ConEmu`, `C:\Program Files\ConEmu\ConEmu`, `C:\Windows\SYSTEM32`, `C:\Windows`}},
+	{title: `TEMP`, lines: []string{`%USERPROFILE%\AppData\Local\Temp`}},
+	{title: `TMP`, lines: []string{`c:\temp`}},
 }
 
 func TestGetSections(t *testing.T) {
 	sut = peekenv{registry: mock}
 	expected := testSections
-	sut.populateSectionsFrom(PATH_USER)
+	sut.populateSectionsFrom(REG_KEY_USER)
 	if !reflect.DeepEqual(expected, sut.sections) {
 		t.Errorf("Expected: %q, was: %q", expected, sut.sections)
 	}

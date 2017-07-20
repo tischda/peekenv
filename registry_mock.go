@@ -14,11 +14,11 @@ func init() {
 	}
 }
 
-func (r mockRegistry) GetString(path regPath, valueName string) (value string, err error) {
+func (r mockRegistry) GetString(path regKey, valueName string) (value string, err error) {
 	return r.env[valueName], nil
 }
 
-func (r mockRegistry) EnumValues(path regPath) []string {
+func (r mockRegistry) EnumValues(path regKey) []string {
 	keys := make([]string, 0, len(r.env))
 	for k := range r.env {
 		keys = append(keys, k)

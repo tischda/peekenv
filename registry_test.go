@@ -8,11 +8,10 @@ import (
 
 func TestGetValue(t *testing.T) {
 	var registry = realRegistry{}
-	expected := `%USERPROFILE%\AppData\Local\Temp`
-	actual, err := registry.GetString(PATH_USER, "TEMP")
+	expected := `AMD64`
+	actual, err := registry.GetString(REG_KEY_MACHINE, "PROCESSOR_ARCHITECTURE")
 	if err != nil {
 		t.Errorf("Error in SetString", err)
 	}
 	assertEquals(t, expected, actual)
 }
-
