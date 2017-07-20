@@ -44,7 +44,6 @@ C:\Windows
 
 [TMP]
 c:\temp
-
 `
 	assertEquals(t, expected, sut.String())
 }
