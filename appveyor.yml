@@ -26,7 +26,7 @@ test_script:
   - peekenv.exe -version
   - go test -v -cover
   - go test -v | go2xunit -xunitnet > xunit-report.xml
-  - peekenv.exe -var pathext -hklm -
+  - peekenv.exe -m pathext
 
 artifacts:
   - path: peekenv.exe
