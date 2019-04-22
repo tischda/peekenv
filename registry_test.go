@@ -11,7 +11,7 @@ func TestGetValue(t *testing.T) {
 	expected := `AMD64`
 	actual, err := registry.GetString(REG_KEY_MACHINE, "PROCESSOR_ARCHITECTURE")
 	if err != nil {
-		t.Errorf("Error in SetString", err)
+		t.Errorf("Error in SetString: %q", err)
 	}
 	assertEquals(t, expected, actual)
 }
