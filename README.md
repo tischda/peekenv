@@ -8,7 +8,7 @@ environment variables from the registry.
 There are no dependencies.
 
 ~~~
-go get github.com/tischda/peekenv
+go install github.com/tischda/peekenv
 ~~~
 
 ### Usage
@@ -54,6 +54,6 @@ Example:
 Note that the value `.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC` is converted to multiples lines.
 This is the input format used by [pokenv](https://github.com/tischda/pokenv). 
 
-### Other readers
+### Alternatives
 
 Built-in, see: `reg query /?`

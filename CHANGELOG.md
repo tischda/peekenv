@@ -1,5 +1,9 @@
 ## Changelog
 
+##### peekenv 2.0.x - (?)
+
+    * Use go modules
+
 ##### peekenv 2.0.1 - (04 June 2019)
 
     * Fix error message formatting issue

@@ -7,16 +7,16 @@ PROJECT_DIR=$(notdir $(shell pwd))
 BUILD_TAG=$(shell git describe --tags)
 LDFLAGS=-ldflags=all="-X main.version=${BUILD_TAG} -s -w"
 
-all: get build
+all: build
 
 build:
-	go build ${LDFLAGS}
+	go build -mod vendor ${LDFLAGS}
 
 get:
 	go get
 
-test: fmt vet
-	go test -v -cover
+test:
+	go test -mod vendor -v -cover
 
 cover:
 	go test -coverprofile=coverage.out
@@ -24,9 +24,6 @@ cover:
 
 fmt:
 	go fmt
-
-vet:
-	go vet -v
 
 install:
 	go install ${LDFLAGS} ./...
