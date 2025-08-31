@@ -1,4 +1,6 @@
 *.exe
+peekenv
 coverage.out
 dist/
 releaseinfo
+resource.syso

@@ -63,8 +63,9 @@ dist: clean build
 clean:
 	go clean
 	rm -rf dist
-	rm -f releaseinfo
 	rm -f coverage.out
+	rm -f releaseinfo
+	rm -f resource.syso
 
 ## version: show version info
 version:
