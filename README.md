@@ -1,14 +1,17 @@
-# peekenv [![Build status](https://ci.appveyor.com/api/projects/status/4but7lwfch3n65h0?svg=true)](https://ci.appveyor.com/project/tischda/peekenv)
+[![Build Status](https://github.com/tischda/peekenv/actions/workflows/build.yml/badge.svg)](https://github.com/tischda/peekenv/actions/workflows/build.yml)
+[![Test Status](https://github.com/tischda/peekenv/actions/workflows/test.yml/badge.svg)](https://github.com/tischda/peekenv/actions/workflows/test.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/tischda/peekenv)](https://goreportcard.com/report/github.com/tischda/peekenv)
 
-Windows utility written in [Go](https://www.golang.org) to peek
-environment variables from the registry.
+# peekenv
+
+Retrieves environment variables from the Windows registry.
 
 ### Install
 
 There are no dependencies.
 
 ~~~
-go install github.com/tischda/peekenv
+go install github.com/tischda/peekenv@latest
 ~~~
 
 ### Usage
