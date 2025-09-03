@@ -1,5 +1,6 @@
-// +build windows
+//go:build windows
 
+// Package main provides a utility to dump Windows environment variables
 package main
 
 import (
@@ -9,24 +10,33 @@ import (
 	"os"
 )
 
-var version string
+const version = "" // version is set during build
 
-var file_name string
-var flag_help = flag.Bool("help", false, "displays this help message")
-var flag_machine = flag.Bool("machine", false, "specifies that the variables should be read system wide (HKEY_LOCAL_MACHINE)")
-var flag_info = flag.Bool("info", false, "print info header")
-var flag_version = flag.Bool("version", false, "print version and exit")
+type Config struct {
+	help     bool
+	machine  bool
+	info     bool
+	version  bool
+	filename string
+}
 
-func init() {
-	flag.BoolVar(flag_help, "h", false, "")
-	flag.BoolVar(flag_info, "i", false, "")
-	flag.BoolVar(flag_machine, "m", false, "")
-	flag.BoolVar(flag_version, "v", false, "")
-	flag.StringVar(&file_name, "f", "REQUIRED", "file to dump the variables from the Windows environment")
+func initFlags() *Config {
+	cfg := &Config{}
+	flag.BoolVar(&cfg.help, "help", false, "displays this help message")
+	flag.BoolVar(&cfg.help, "h", false, "")
+	flag.BoolVar(&cfg.machine, "machine", false, "specifies that the variables should be read system wide (HKEY_LOCAL_MACHINE)")
+	flag.BoolVar(&cfg.machine, "m", false, "")
+	flag.BoolVar(&cfg.info, "info", false, "print info header")
+	flag.BoolVar(&cfg.info, "i", false, "")
+	flag.BoolVar(&cfg.version, "version", false, "print version and exit")
+	flag.BoolVar(&cfg.version, "v", false, "")
+	flag.StringVar(&cfg.filename, "f", "REQUIRED", "file to dump the variables from the Windows environment")
+	return cfg
 }
 
 func main() {
 	log.SetFlags(0)
+	cfg := initFlags()
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [-h] [-m] [-f outfile] [variables...]\n\nOPTIONS:\n", os.Args[0])
@@ -34,26 +44,34 @@ func main() {
 	}
 	flag.Parse()
 
-	if *flag_version {
-		fmt.Println("peekenv version", version)
-		return
+	if err := run(cfg); err != nil {
+		log.Fatal(err)
 	}
-	if *flag_help {
+}
+
+func run(cfg *Config) error {
+	if cfg.version {
+		fmt.Println("peekenv version", version)
+		return nil
+	}
+	if cfg.help {
 		flag.Usage()
 		os.Exit(1)
 	}
-	process()
+	return process(cfg)
 }
 
-func process() {
+func process(cfg *Config) error {
 	var file *os.File
+	var err error
 
-	if file_name == "REQUIRED" {
+	if cfg.filename == "REQUIRED" {
 		file = os.Stdout
 	} else {
-		var err error
-		file, err = os.Create(file_name)
-		checkFatal(err)
+		file, err = os.Create(cfg.filename)
+		if err != nil {
+			return fmt.Errorf("creating output file: %w", err)
+		}
 	}
 	defer file.Close()
 
@@ -62,15 +80,8 @@ func process() {
 		registry: realRegistry{},
 	}
 
-	if *flag_machine {
-		peekenv.exportEnv(REG_KEY_MACHINE, file)
-	} else {
-		peekenv.exportEnv(REG_KEY_USER, file)
+	if cfg.machine {
+		return peekenv.exportEnv(REG_KEY_MACHINE, file, cfg.info)
 	}
-}
-
-func checkFatal(err error) {
-	if err != nil {
-		log.Fatalln(err)
-	}
+	return peekenv.exportEnv(REG_KEY_USER, file, cfg.info)
 }
