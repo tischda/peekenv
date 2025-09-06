@@ -175,3 +175,65 @@ func TestPeekenv_ExportEnv_Both(t *testing.T) {
 		t.Error("Should have properly formatted [Path] section")
 	}
 }
+
+func TestPeekenv_ExportEnv_Machine_Expand_Windir(t *testing.T) {
+	// Create a peekenv instance that will read from real registry
+	p := &peekenv{
+		envMap:    make(map[string]string),
+		variables: []string{"windir"}, // Filter for only windir variable
+	}
+
+	var buf bytes.Buffer
+	cfg := &Config{
+		header: false, // No header for cleaner output
+		expand: true,  // Expand environment variables
+	}
+
+	// Execute the test with machine registry reading only
+	err := p.exportEnv(MACHINE, &buf, cfg)
+
+	if err != nil {
+		t.Fatalf("exportEnv() error = %v", err)
+	}
+
+	output := buf.String()
+
+	// Verify that windir variable exists and is properly formatted
+	if !strings.Contains(output, "[windir]") {
+		t.Error("Output should contain [windir] section")
+	}
+
+	// Check that the expanded value contains Windows directory path
+	expectedPaths := []string{
+		"C:\\WINDOWS",
+		"C:\\Windows", // Alternative casing
+	}
+
+	foundExpectedPath := false
+	for _, expectedPath := range expectedPaths {
+		if strings.Contains(output, expectedPath) {
+			foundExpectedPath = true
+			break
+		}
+	}
+
+	if !foundExpectedPath {
+		t.Errorf("windir should contain Windows directory path, got output:\n%s", output)
+	}
+
+	// Verify the output format matches expected structure
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	if len(lines) < 2 {
+		t.Errorf("Output should have at least 2 lines (section header + value), got %d lines", len(lines))
+	}
+
+	// First line should be the section header
+	if lines[0] != "[windir]" {
+		t.Errorf("First line should be [windir], got %q", lines[0])
+	}
+
+	// Second line should contain the Windows path
+	if !strings.Contains(strings.ToUpper(lines[1]), "WINDOWS") {
+		t.Errorf("Second line should contain Windows path, got %q", lines[1])
+	}
+}
