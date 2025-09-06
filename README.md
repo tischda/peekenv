@@ -26,9 +26,9 @@ If no variables are specified, all environment variables are printed.
 OPTIONS:
 
   -u, --user"
-          read only user variables (HKEY_CURRENT_USER)"
+          read user variables (HKEY_CURRENT_USER)"
   -m, --machine"
-          read only system variables (HKEY_LOCAL_MACHINE)"
+          read system variables (HKEY_LOCAL_MACHINE)"
   -h, --header
           print info header
   -x, --expand

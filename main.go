@@ -62,9 +62,9 @@ If no variables are specified, all environment variables are printed.
 OPTIONS:
 
   -u, --user"
-          read only user variables (HKEY_CURRENT_USER)"
+          read user variables (HKEY_CURRENT_USER)"
   -m, --machine"
-          read only system variables (HKEY_LOCAL_MACHINE)"
+          read system variables (HKEY_LOCAL_MACHINE)"
   -h, --header
           print info header
   -x, --expand
@@ -94,11 +94,6 @@ EXAMPLES:`)
 		return
 	}
 
-	if cfg.machine && cfg.user {
-		fmt.Printf("cannot specify both -m/--machine and -u/--user")
-		os.Exit(1)
-	}
-
 	if err := process(cfg); err != nil {
 		log.Fatalln(err)
 	}
@@ -124,7 +119,9 @@ func process(cfg *Config) error {
 	}
 
 	mode := BOTH
-	if cfg.machine {
+	if cfg.machine && cfg.user {
+		mode = BOTH
+	} else if cfg.machine {
 		mode = MACHINE
 	} else if cfg.user {
 		mode = USER
