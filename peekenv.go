@@ -12,27 +12,20 @@ import (
 	"golang.org/x/sys/windows/registry"
 )
 
+var (
+	// Header strings for different registry modes
+	headerStrings = map[RegistryMode]string{
+		USER:    "# HKEY_CURRENT_USER\\Environment\n",
+		MACHINE: "# HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment\n",
+		BOTH:    "# HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment\n# HKEY_CURRENT_USER\\Environment\n",
+	}
+)
+
 // peekenv handles the reading and formatting of environment variables.
 // It maintains a map of environment variables, and optional variable name filters.
 type peekenv struct {
 	envMap    map[string]string
 	variables []string
-}
-
-// getUserAndSystemEnv retrieves all environment variables from the registry,
-// merging USER and SYSTEM variables, with SYSTEM taking precedence for "Path".
-func (p *peekenv) getUserAndSystemEnv() error {
-
-	// Read SYSTEM environment vars
-	if err := p.getSystemVariables(); err != nil {
-		return err
-	}
-
-	// Read USER environment vars
-	if err := p.getUserVariables(true); err != nil {
-		return err
-	}
-	return nil
 }
 
 // getSystemVariables reads system environment variables from the registry
@@ -85,26 +78,22 @@ func (p *peekenv) getVariables(reg registry.Key, mergePaths bool) error {
 //
 // Returns an error if reading from registry fails or if no environment variables are found.
 func (p *peekenv) exportEnv(reg RegistryMode, w io.Writer, printHeader bool) error {
-	header := ""
-	now := time.Now().Format(time.RFC3339)
-
 	switch reg {
 	case USER:
 		if err := p.getUserVariables(false); err != nil {
 			return fmt.Errorf("reading user environment variables: %w", err)
 		}
-		header = fmt.Sprintf("# HKEY_CURRENT_USER\\Environment - Exported on %s\n\n", now)
 	case MACHINE:
 		if err := p.getSystemVariables(); err != nil {
 			return fmt.Errorf("reading system environment variables: %w", err)
 		}
-		header = fmt.Sprintf("# HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment - Exported on %s\n\n", now)
 	default:
-		if err := p.getUserAndSystemEnv(); err != nil {
-			return fmt.Errorf("reading environment variables: %w", err)
+		if err := p.getSystemVariables(); err != nil {
+			return fmt.Errorf("reading system environment variables: %w", err)
 		}
-		header = "# HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment\n" + "# HKEY_CURRENT_USER\\Environment"
-		header += fmt.Sprintf("Exported on %s\n\n", now)
+		if err := p.getUserVariables(true); err != nil {
+			return fmt.Errorf("reading user environment variables: %w", err)
+		}
 	}
 
 	if len(p.envMap) == 0 {
@@ -112,6 +101,9 @@ func (p *peekenv) exportEnv(reg RegistryMode, w io.Writer, printHeader bool) err
 	}
 
 	if printHeader {
+		header := headerStrings[reg]
+		now := time.Now().Format("2006-01-02 15:04:05 -0700 MST")
+		header += fmt.Sprintf("# Exported on %s\n\n", now)
 		_, err := io.WriteString(w, header)
 		if err != nil {
 			return fmt.Errorf("writing header: %w", err)
