@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 	"time"
 
@@ -135,12 +136,19 @@ func (p *peekenv) exportEnv(reg RegistryMode, w io.Writer, printHeader bool) err
 func (p *peekenv) String() string {
 	var sb strings.Builder
 
-	for k, v := range p.envMap {
-		if len(sb.String()) > 0 {
+	// Get sorted keys for consistent alphabetical output
+	keys := make([]string, 0, len(p.envMap))
+	for k := range p.envMap {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for i, k := range keys {
+		if i > 0 {
 			sb.WriteString("\n\n")
 		}
 		sb.WriteString("[" + k + "]\n")
-		sb.WriteString(strings.ReplaceAll(v, ";", "\n"))
+		sb.WriteString(strings.ReplaceAll(p.envMap[k], ";", "\n"))
 	}
 	sb.WriteString("\n")
 	return sb.String()
