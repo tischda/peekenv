@@ -9,8 +9,6 @@ Retrieves environment variables from the Windows registry.
 
 ### Install
 
-There are no dependencies.
-
 ~~~
 go install github.com/tischda/peekenv@latest
 ~~~
@@ -18,55 +16,48 @@ go install github.com/tischda/peekenv@latest
 ### Usage
 
 ~~~
-Usage: peekenv [-h] [-m] [-f outfile] [variables...]
+Usage: peekenv [OPTIONS] [variables...]
+
+Retrieves environment variables from the Windows registry. By default,
+both system and user variables are read. You can filter using OPTIONS.
+
+If no variables are specified, all environment variables are printed.
 
 OPTIONS:
-  -f string
-        file to dump the variables from the Windows environment (default "REQUIRED")
-  -h
-  -help
-        displays this help message
-  -i
-  -info
-        print info header
-  -m
-  -machine
-        specifies that the variables should be read system wide (HKEY_LOCAL_MACHINE)
-  -v
-  -version
-        print version and exit
+
+  -u, --user"
+          read only user variables (HKEY_CURRENT_USER)"
+  -m, --machine"
+          read only system variables (HKEY_LOCAL_MACHINE)"
+  -h, --header
+          print info header
+  -x, --expand
+          expand environment variables to values (eg. %APPDATA%)
+  -o, --output FILE
+          file to dump the environment variables to (default: stdout)
+  -?, --help
+          display this help message
+  -v, --version
+          print version and exit
 ~~~
 
-
-TODO
-    /M                     Specifies that the variable should be set in
-                           the system wide (HKEY_LOCAL_MACHINE)
-                           environment. The default is to set the
-                           variable under the HKEY_CURRENT_USER
-                           environment.
-
-
-
-
-Example:
+### Examples
 
 ~~~
-# peekenv.exe -m pathext    
-[PATHEXT]                   
-.COM                        
-.EXE                        
-.BAT                        
-.CMD                        
-.VBS                        
-.VBE                        
-.JS                         
-.JSE                        
-.WSF                        
-.WSH                        
-.MSC                        
+❯ peekenv psmodulepath
+[PSModulePath]
+%ProgramFiles%\WindowsPowerShell\Modules
+%SystemRoot%\system32\WindowsPowerShell\v1.0\Modules
 ~~~
 
-Note that the value `.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC` is converted to multiples lines.
+~~~
+❯ peekenv -expand psmodulepath
+[PSModulePath]
+C:\Program Files\WindowsPowerShell\Modules
+C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules                  
+~~~
+
+Note that path values are converted to multiples lines within the section.
 This is the input format used by [pokenv](https://github.com/tischda/pokenv). 
 
 ### Alternatives

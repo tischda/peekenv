@@ -20,12 +20,13 @@ var (
 
 // flags
 type Config struct {
-	help    bool
 	user    bool
 	machine bool
 	header  bool
-	version bool
+	expand  bool
 	output  string
+	help    bool
+	version bool
 }
 
 func initFlags() *Config {
@@ -36,6 +37,8 @@ func initFlags() *Config {
 	flag.BoolVar(&cfg.machine, "machine", false, "read only system variables (HKEY_LOCAL_MACHINE)")
 	flag.BoolVar(&cfg.header, "h", false, "")
 	flag.BoolVar(&cfg.header, "header", false, "print info header")
+	flag.BoolVar(&cfg.expand, "x", false, "")
+	flag.BoolVar(&cfg.expand, "expand", false, "expand environment variables to values (eg. %APPDATA%)")
 	flag.StringVar(&cfg.output, "o", "stdout", "")
 	flag.StringVar(&cfg.output, "output", "stdout", "file to dump the environment variables to")
 	flag.BoolVar(&cfg.help, "?", false, "")
@@ -64,6 +67,8 @@ OPTIONS:
           read only system variables (HKEY_LOCAL_MACHINE)"
   -h, --header
           print info header
+  -x, --expand
+          expand environment variables to values (eg. %APPDATA%)
   -o, --output FILE
           file to dump the environment variables to (default: stdout)
   -?, --help
@@ -95,7 +100,7 @@ EXAMPLES:`)
 	}
 
 	if err := process(cfg); err != nil {
-		log.Fatalln("Error:", err)
+		log.Fatalln(err)
 	}
 }
 
@@ -124,5 +129,5 @@ func process(cfg *Config) error {
 	} else if cfg.user {
 		mode = USER
 	}
-	return peekenv.exportEnv(mode, file, cfg.header)
+	return peekenv.exportEnv(mode, file, cfg)
 }

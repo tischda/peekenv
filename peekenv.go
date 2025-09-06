@@ -37,6 +37,56 @@ type peekenv struct {
 	variables []string
 }
 
+// ExportEnv reads environment variables from the registry and writes them to the provided writer.
+// Parameters:
+//   - reg: the registry mode specifying which registry keys to read from (USER, MACHINE, or BOTH)
+//   - w: the writer to output the formatted environment variables to
+//   - printHeader: if true, includes a header with registry path and timestamp
+//
+// Returns an error if reading from registry fails or if no environment variables are found.
+func (p *peekenv) exportEnv(reg RegistryMode, w io.Writer, cfg *Config) error {
+	switch reg {
+	case USER:
+		if err := p.getUserVariables(false); err != nil {
+			return fmt.Errorf("reading user environment variables: %w", err)
+		}
+	case MACHINE:
+		if err := p.getSystemVariables(); err != nil {
+			return fmt.Errorf("reading system environment variables: %w", err)
+		}
+	default:
+		if err := p.getSystemVariables(); err != nil {
+			return fmt.Errorf("reading system environment variables: %w", err)
+		}
+		if err := p.getUserVariables(true); err != nil {
+			return fmt.Errorf("reading user environment variables: %w", err)
+		}
+	}
+
+	if len(p.envMap) == 0 {
+		return fmt.Errorf("no environment variables found")
+	}
+
+	if cfg.header {
+		header := headerStrings[reg]
+		now := time.Now().Format("2006-01-02 15:04:05 -0700 MST")
+		header += fmt.Sprintf("# Exported on %s\n\n", now)
+		_, err := io.WriteString(w, header)
+		if err != nil {
+			return fmt.Errorf("writing header: %w", err)
+		}
+	}
+
+	if cfg.expand {
+		for k, v := range p.envMap {
+			p.envMap[k] = expandVariable(v)
+		}
+	}
+
+	_, err := io.WriteString(w, p.String())
+	return err
+}
+
 // getSystemVariables reads system environment variables from the registry.
 // It opens the HKEY_LOCAL_MACHINE registry key and populates p.envMap with system variables.
 // Returns an error if the registry cannot be accessed or read.
@@ -87,50 +137,6 @@ func (p *peekenv) getVariables(reg registry.Key, mergePaths bool) error {
 			p.envMap[variable] = val
 		}
 	}
-	return err
-}
-
-// ExportEnv reads environment variables from the registry and writes them to the provided writer.
-// Parameters:
-//   - reg: the registry mode specifying which registry keys to read from (USER, MACHINE, or BOTH)
-//   - w: the writer to output the formatted environment variables to
-//   - printHeader: if true, includes a header with registry path and timestamp
-//
-// Returns an error if reading from registry fails or if no environment variables are found.
-func (p *peekenv) exportEnv(reg RegistryMode, w io.Writer, printHeader bool) error {
-	switch reg {
-	case USER:
-		if err := p.getUserVariables(false); err != nil {
-			return fmt.Errorf("reading user environment variables: %w", err)
-		}
-	case MACHINE:
-		if err := p.getSystemVariables(); err != nil {
-			return fmt.Errorf("reading system environment variables: %w", err)
-		}
-	default:
-		if err := p.getSystemVariables(); err != nil {
-			return fmt.Errorf("reading system environment variables: %w", err)
-		}
-		if err := p.getUserVariables(true); err != nil {
-			return fmt.Errorf("reading user environment variables: %w", err)
-		}
-	}
-
-	if len(p.envMap) == 0 {
-		return fmt.Errorf("no environment variables found")
-	}
-
-	if printHeader {
-		header := headerStrings[reg]
-		now := time.Now().Format("2006-01-02 15:04:05 -0700 MST")
-		header += fmt.Sprintf("# Exported on %s\n\n", now)
-		_, err := io.WriteString(w, header)
-		if err != nil {
-			return fmt.Errorf("writing header: %w", err)
-		}
-	}
-
-	_, err := io.WriteString(w, p.String())
 	return err
 }
 
