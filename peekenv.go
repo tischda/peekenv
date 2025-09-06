@@ -6,62 +6,74 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"syscall"
 	"time"
 
 	"golang.org/x/sys/windows/registry"
 )
 
-var modkernel32 = syscall.NewLazyDLL("kernel32.dll")
-var procExpandEnvironmentStringsW = modkernel32.NewProc("ExpandEnvironmentStringsW")
-
 // peekenv handles the reading and formatting of environment variables.
-// It maintains sections of environment variables, optional variable name filters,
-// and a registry interface for data access.
+// It maintains a map of environment variables, and optional variable name filters.
 type peekenv struct {
 	envMap    map[string]string
 	variables []string
 }
 
-// getUserAndSystemEnv retrieves the current environment
+// getUserAndSystemEnv retrieves all environment variables from the registry,
+// merging USER and SYSTEM variables, with SYSTEM taking precedence for "Path".
 func (p *peekenv) getUserAndSystemEnv() error {
-	p.envMap = make(map[string]string)
 
 	// Read SYSTEM environment vars
-	sysReg, err := registry.OpenKey(registry.LOCAL_MACHINE, `SYSTEM\CurrentControlSet\Control\Session Manager\Environment`, registry.READ)
-	if err == nil {
-		defer sysReg.Close()
-		sysEnv, _ := sysReg.ReadValueNames(0)
-		for _, name := range sysEnv {
-			val, _, _ := sysReg.GetStringValue(name)
-			p.envMap[name] = val
-		}
+	if err := p.getSystemVariables(); err != nil {
+		return err
 	}
 
 	// Read USER environment vars
+	if err := p.getUserVariables(true); err != nil {
+		return err
+	}
+	return nil
+}
+
+// getSystemVariables reads system environment variables from the registry
+func (p *peekenv) getSystemVariables() error {
+	sysReg, err := registry.OpenKey(registry.LOCAL_MACHINE, `SYSTEM\CurrentControlSet\Control\Session Manager\Environment`, registry.READ)
+	if err == nil {
+		defer sysReg.Close()
+		err = p.getVariables(sysReg, false)
+	}
+	return err
+}
+
+// getUserVariables reads user environment variables from the registry
+func (p *peekenv) getUserVariables(mergePaths bool) error {
 	userReg, err := registry.OpenKey(registry.CURRENT_USER, `Environment`, registry.READ)
 	if err == nil {
 		defer userReg.Close()
-		userEnv, _ := userReg.ReadValueNames(0)
-		for _, name := range userEnv {
-			val, _, _ := userReg.GetStringValue(name)
-			if name == "Path" {
-				// Append USER Path to SYSTEM Path (system first, then user)
-				p.envMap[name] = p.envMap[name] + ";" + val
-			} else {
-				p.envMap[name] = val
-			}
+		err = p.getVariables(userReg, mergePaths)
+	}
+	return err
+}
+
+// getVariables reads environment variables from the provided registry key
+//
+// The mergePaths flag indicates if "Path" variables should be merged
+// with existing values in p.envMap.
+// This presuposes p.envMap is already initialized with SYSTEM variables.
+func (p *peekenv) getVariables(reg registry.Key, mergePaths bool) error {
+	env, err := reg.ReadValueNames(0)
+	for _, variable := range env {
+		if len(p.variables) > 0 && !containsIgnoreCase(p.variables, variable) {
+			continue
+		}
+		val, _, _ := reg.GetStringValue(variable)
+		if mergePaths && (variable == "Path" || variable == "PsModulePath") {
+			// Append USER Path to SYSTEM Path (system first, then user)
+			p.envMap[variable] = p.envMap[variable] + ";" + val
+		} else {
+			p.envMap[variable] = val
 		}
 	}
-
-	//TODO: keep only filtered variables
-
-	// for _, sectionTitle := range values {
-	// 	if len(p.variables) > 0 && !containsIgnoreCase(p.variables, sectionTitle) {
-	// 		continue
-	// 	}
-
-	return nil
+	return err
 }
 
 // ExportEnv reads environment variables from the registry and writes them to the provided writer.
@@ -72,8 +84,26 @@ func (p *peekenv) getUserAndSystemEnv() error {
 //
 // Returns an error if reading from registry fails or if no environment variables are found.
 func (p *peekenv) exportEnv(reg RegistryMode, w io.Writer, printHeader bool) error {
-	if err := p.getUserAndSystemEnv(); err != nil {
-		return fmt.Errorf("retrieving variables: %w", err)
+	header := ""
+	now := time.Now().Format(time.RFC3339)
+
+	switch reg {
+	case USER:
+		if err := p.getUserVariables(false); err != nil {
+			return fmt.Errorf("reading user environment variables: %w", err)
+		}
+		header = fmt.Sprintf("# HKEY_CURRENT_USER\\Environment - Exported on %s\n\n", now)
+	case MACHINE:
+		if err := p.getSystemVariables(); err != nil {
+			return fmt.Errorf("reading system environment variables: %w", err)
+		}
+		header = fmt.Sprintf("# HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment - Exported on %s\n\n", now)
+	default:
+		if err := p.getUserAndSystemEnv(); err != nil {
+			return fmt.Errorf("reading environment variables: %w", err)
+		}
+		header = "# HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment\n" + "# HKEY_CURRENT_USER\\Environment"
+		header += fmt.Sprintf("Exported on %s\n\n", now)
 	}
 
 	if len(p.envMap) == 0 {
@@ -81,8 +111,9 @@ func (p *peekenv) exportEnv(reg RegistryMode, w io.Writer, printHeader bool) err
 	}
 
 	if printHeader {
-		if err := printInfoHeader(reg, w); err != nil {
-			return fmt.Errorf("printing header: %w", err)
+		_, err := io.WriteString(w, header)
+		if err != nil {
+			return fmt.Errorf("writing header: %w", err)
 		}
 	}
 
@@ -90,41 +121,29 @@ func (p *peekenv) exportEnv(reg RegistryMode, w io.Writer, printHeader bool) err
 	return err
 }
 
-// String returns a formatted string representation of all sections.
-// Each section is formatted as [title] followed by its lines,
-// with sections separated by double newlines.
+// String returns a formatted string representation of all variables.
+//
+// [M2_HOME]
+// c:\usr\bin\maven
+
+// [Path]
+// c:\Windows\system32
+// c:\Windows
+//
+// Path type variables with multiple values separated by semicolons will be printed separated by
+// newlines for better readability. This is also the format expected when importing with pokenv.
 func (p *peekenv) String() string {
 	var sb strings.Builder
+
 	for k, v := range p.envMap {
-		if true {
+		if len(sb.String()) > 0 {
 			sb.WriteString("\n\n")
 		}
-		// TODO: only for Path, replace ; with newlines
-		fmt.Fprintf(&sb, "[%s]\n%s", k, v)
+		sb.WriteString("[" + k + "]\n")
+		sb.WriteString(strings.ReplaceAll(v, ";", "\n"))
 	}
 	sb.WriteString("\n")
 	return sb.String()
-}
-
-// printInfoHeader writes a header comment to the writer containing the registry path and export timestamp.
-// Parameters:
-//   - reg: the registry key to include in the header
-//   - w: the writer to output the header to
-//
-// Returns an error if the registry key type is unknown or if writing fails.
-func printInfoHeader(reg RegistryMode, w io.Writer) error {
-	now := time.Now().Format(time.RFC3339)
-	var header string
-	switch reg {
-	case USER:
-		header = fmt.Sprintf("# HKEY_CURRENT_USER\\TODO - Exported %s\n\n", now)
-	case MACHINE:
-		header = fmt.Sprintf("# HKEY_LOCAL_MACHINE\\TODO - Exported %s\n\n", now)
-	default:
-		// TODO
-	}
-	_, err := io.WriteString(w, header)
-	return err
 }
 
 // containsIgnoreCase checks if a string slice contains a target string using case-insensitive comparison.

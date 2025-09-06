@@ -68,23 +68,23 @@ If no variables are specified, all environment variables are printed.
 OPTIONS:
 
   -u, --user"
-        read only user variables (HKEY_CURRENT_USER)"
+          read only user variables (HKEY_CURRENT_USER)"
   -m, --machine"
-        read only system variables (HKEY_LOCAL_MACHINE)"
+          read only system variables (HKEY_LOCAL_MACHINE)"
   -h, --header
-		print info header
+          print info header
   -o, --output FILE
-		file to dump the environment variables to (default: stdout)
+          file to dump the environment variables to (default: stdout)
   -?, --help
-        display this help message
+          display this help message
   -v, --version
-        print version and exit
+          print version and exit
 
 EXAMPLES:`)
 
 		fmt.Fprintln(os.Stderr, "\n  $ "+name+` TEMP
-      [TEMP]
-      c:\temp`)
+  [TEMP]
+  c:\temp`)
 	}
 	flag.Parse()
 
@@ -123,13 +123,15 @@ func process(cfg *Config) error {
 	defer file.Close()
 
 	peekenv := peekenv{
+		envMap:    make(map[string]string),
 		variables: flag.Args(),
 	}
 
+	mode := BOTH
 	if cfg.machine {
-		return peekenv.exportEnv(MACHINE, file, cfg.header)
+		mode = MACHINE
 	} else if cfg.user {
-		return peekenv.exportEnv(USER, file, cfg.header)
+		mode = USER
 	}
-	return peekenv.exportEnv(BOTH, file, cfg.header)
+	return peekenv.exportEnv(mode, file, cfg.header)
 }
