@@ -37,6 +37,17 @@ OPTIONS:
         print version and exit
 ~~~
 
+
+TODO
+    /M                     Specifies that the variable should be set in
+                           the system wide (HKEY_LOCAL_MACHINE)
+                           environment. The default is to set the
+                           variable under the HKEY_CURRENT_USER
+                           environment.
+
+
+
+
 Example:
 
 ~~~

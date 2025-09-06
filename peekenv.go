@@ -1,38 +1,82 @@
+//go:build windows
+
 package main
 
 import (
 	"fmt"
 	"io"
-	"sort"
 	"strings"
+	"syscall"
 	"time"
+
+	"golang.org/x/sys/windows/registry"
 )
 
-var (
-	REG_KEY_USER    = regKey{HKEY_CURRENT_USER, `Environment`}
-	REG_KEY_MACHINE = regKey{HKEY_LOCAL_MACHINE, `SYSTEM\CurrentControlSet\Control\Session Manager\Environment`}
-)
+var modkernel32 = syscall.NewLazyDLL("kernel32.dll")
+var procExpandEnvironmentStringsW = modkernel32.NewProc("ExpandEnvironmentStringsW")
 
-// Section represents a named group of environment variables
-type Section struct {
-	title string
-	lines []string
-}
-
-// peekenv handles the reading and formatting of environment variables
+// peekenv handles the reading and formatting of environment variables.
+// It maintains sections of environment variables, optional variable name filters,
+// and a registry interface for data access.
 type peekenv struct {
-	sections []Section
-	filters  []string
-	registry Registry
+	envMap    map[string]string
+	variables []string
 }
 
-// ExportEnv reads environment variables from the registry and writes them to the provided writer
-func (p *peekenv) exportEnv(reg regKey, w io.Writer, printHeader bool) error {
-	if err := p.populateSectionsFrom(reg); err != nil {
-		return fmt.Errorf("populating sections: %w", err)
+// getUserAndSystemEnv retrieves the current environment
+func (p *peekenv) getUserAndSystemEnv() error {
+	p.envMap = make(map[string]string)
+
+	// Read SYSTEM environment vars
+	sysReg, err := registry.OpenKey(registry.LOCAL_MACHINE, `SYSTEM\CurrentControlSet\Control\Session Manager\Environment`, registry.READ)
+	if err == nil {
+		defer sysReg.Close()
+		sysEnv, _ := sysReg.ReadValueNames(0)
+		for _, name := range sysEnv {
+			val, _, _ := sysReg.GetStringValue(name)
+			p.envMap[name] = val
+		}
 	}
 
-	if len(p.sections) == 0 {
+	// Read USER environment vars
+	userReg, err := registry.OpenKey(registry.CURRENT_USER, `Environment`, registry.READ)
+	if err == nil {
+		defer userReg.Close()
+		userEnv, _ := userReg.ReadValueNames(0)
+		for _, name := range userEnv {
+			val, _, _ := userReg.GetStringValue(name)
+			if name == "Path" {
+				// Append USER Path to SYSTEM Path (system first, then user)
+				p.envMap[name] = p.envMap[name] + ";" + val
+			} else {
+				p.envMap[name] = val
+			}
+		}
+	}
+
+	//TODO: keep only filtered variables
+
+	// for _, sectionTitle := range values {
+	// 	if len(p.variables) > 0 && !containsIgnoreCase(p.variables, sectionTitle) {
+	// 		continue
+	// 	}
+
+	return nil
+}
+
+// ExportEnv reads environment variables from the registry and writes them to the provided writer.
+// Parameters:
+//   - reg: the registry key to read environment variables from
+//   - w: the writer to output the formatted environment variables to
+//   - printHeader: if true, includes a header with registry path and timestamp
+//
+// Returns an error if reading from registry fails or if no environment variables are found.
+func (p *peekenv) exportEnv(reg RegistryMode, w io.Writer, printHeader bool) error {
+	if err := p.getUserAndSystemEnv(); err != nil {
+		return fmt.Errorf("retrieving variables: %w", err)
+	}
+
+	if len(p.envMap) == 0 {
 		return fmt.Errorf("no environment variables found")
 	}
 
@@ -46,56 +90,49 @@ func (p *peekenv) exportEnv(reg regKey, w io.Writer, printHeader bool) error {
 	return err
 }
 
-func (p *peekenv) populateSectionsFrom(reg regKey) error {
-	values := p.registry.EnumValues(reg)
-
-	sort.Strings(values)
-	for _, sectionTitle := range values {
-		if len(p.filters) > 0 && !containsIgnoreCase(p.filters, sectionTitle) {
-			continue
-		}
-
-		data, err := p.registry.GetString(reg, sectionTitle)
-		if err != nil {
-			return fmt.Errorf("getting registry value %q: %w", sectionTitle, err)
-		}
-
-		section := Section{
-			title: sectionTitle,
-			lines: strings.Split(data, ";"),
-		}
-		p.sections = append(p.sections, section)
-	}
-	return nil
-}
-
+// String returns a formatted string representation of all sections.
+// Each section is formatted as [title] followed by its lines,
+// with sections separated by double newlines.
 func (p *peekenv) String() string {
 	var sb strings.Builder
-	for i, section := range p.sections {
-		if i > 0 {
+	for k, v := range p.envMap {
+		if true {
 			sb.WriteString("\n\n")
 		}
-		fmt.Fprintf(&sb, "[%s]\n%s", section.title, strings.Join(section.lines, "\n"))
+		// TODO: only for Path, replace ; with newlines
+		fmt.Fprintf(&sb, "[%s]\n%s", k, v)
 	}
 	sb.WriteString("\n")
 	return sb.String()
 }
 
-func printInfoHeader(reg regKey, w io.Writer) error {
+// printInfoHeader writes a header comment to the writer containing the registry path and export timestamp.
+// Parameters:
+//   - reg: the registry key to include in the header
+//   - w: the writer to output the header to
+//
+// Returns an error if the registry key type is unknown or if writing fails.
+func printInfoHeader(reg RegistryMode, w io.Writer) error {
 	now := time.Now().Format(time.RFC3339)
 	var header string
-	switch reg.hKeyIdx {
-	case HKEY_CURRENT_USER:
-		header = fmt.Sprintf("# HKEY_CURRENT_USER\\%s - Exported %s\n\n", reg.lpSubKey, now)
-	case HKEY_LOCAL_MACHINE:
-		header = fmt.Sprintf("# HKEY_LOCAL_MACHINE\\%s - Exported %s\n\n", reg.lpSubKey, now)
+	switch reg {
+	case USER:
+		header = fmt.Sprintf("# HKEY_CURRENT_USER\\TODO - Exported %s\n\n", now)
+	case MACHINE:
+		header = fmt.Sprintf("# HKEY_LOCAL_MACHINE\\TODO - Exported %s\n\n", now)
 	default:
-		return fmt.Errorf("unknown registry key type: %v", reg.hKeyIdx)
+		// TODO
 	}
 	_, err := io.WriteString(w, header)
 	return err
 }
 
+// containsIgnoreCase checks if a string slice contains a target string using case-insensitive comparison.
+// Parameters:
+//   - slice: the string slice to search in
+//   - str: the target string to search for
+//
+// Returns true if the target string is found (case-insensitive), false otherwise.
 func containsIgnoreCase(slice []string, str string) bool {
 	for _, item := range slice {
 		if strings.EqualFold(item, str) {
