@@ -28,15 +28,6 @@ type Config struct {
 	output  string
 }
 
-// RegistryMode represents which registry keys to read from
-type RegistryMode int
-
-const (
-	MACHINE RegistryMode = iota // Read only from HKEY_LOCAL_MACHINE
-	USER                        // Read only from HKEY_CURRENT_USER
-	BOTH                        // Read from both registries, user takes precedence
-)
-
 func initFlags() *Config {
 	cfg := &Config{}
 	flag.BoolVar(&cfg.user, "u", false, "")

@@ -12,6 +12,15 @@ import (
 	"golang.org/x/sys/windows/registry"
 )
 
+// RegistryMode represents which registry keys to read from
+type RegistryMode int
+
+const (
+	MACHINE RegistryMode = iota // Read only from HKEY_LOCAL_MACHINE
+	USER                        // Read only from HKEY_CURRENT_USER
+	BOTH                        // Read from both registries, user takes precedence
+)
+
 var (
 	// Header strings for different registry modes
 	headerStrings = map[RegistryMode]string{
@@ -28,7 +37,9 @@ type peekenv struct {
 	variables []string
 }
 
-// getSystemVariables reads system environment variables from the registry
+// getSystemVariables reads system environment variables from the registry.
+// It opens the HKEY_LOCAL_MACHINE registry key and populates p.envMap with system variables.
+// Returns an error if the registry cannot be accessed or read.
 func (p *peekenv) getSystemVariables() error {
 	sysReg, err := registry.OpenKey(registry.LOCAL_MACHINE, `SYSTEM\CurrentControlSet\Control\Session Manager\Environment`, registry.READ)
 	if err == nil {
@@ -38,7 +49,12 @@ func (p *peekenv) getSystemVariables() error {
 	return err
 }
 
-// getUserVariables reads user environment variables from the registry
+// getUserVariables reads user environment variables from the registry.
+// Parameters:
+//   - mergePaths: if true, merges Path and PsModulePath variables with existing values in p.envMap
+//
+// It opens the HKEY_CURRENT_USER registry key and populates p.envMap with user variables.
+// Returns an error if the registry cannot be accessed or read.
 func (p *peekenv) getUserVariables(mergePaths bool) error {
 	userReg, err := registry.OpenKey(registry.CURRENT_USER, `Environment`, registry.READ)
 	if err == nil {
@@ -48,11 +64,15 @@ func (p *peekenv) getUserVariables(mergePaths bool) error {
 	return err
 }
 
-// getVariables reads environment variables from the provided registry key
+// getVariables reads environment variables from the provided registry key.
+// Parameters:
+//   - reg: the registry key to read variables from
+//   - mergePaths: if true, merges "Path" and "PsModulePath" variables with existing values in p.envMap
 //
 // The mergePaths flag indicates if "Path" variables should be merged
 // with existing values in p.envMap.
-// This presuposes p.envMap is already initialized with SYSTEM variables.
+// This presupposes p.envMap is already initialized with SYSTEM variables.
+// Returns an error if the registry values cannot be read.
 func (p *peekenv) getVariables(reg registry.Key, mergePaths bool) error {
 	env, err := reg.ReadValueNames(0)
 	for _, variable := range env {
@@ -72,7 +92,7 @@ func (p *peekenv) getVariables(reg registry.Key, mergePaths bool) error {
 
 // ExportEnv reads environment variables from the registry and writes them to the provided writer.
 // Parameters:
-//   - reg: the registry key to read environment variables from
+//   - reg: the registry mode specifying which registry keys to read from (USER, MACHINE, or BOTH)
 //   - w: the writer to output the formatted environment variables to
 //   - printHeader: if true, includes a header with registry path and timestamp
 //
