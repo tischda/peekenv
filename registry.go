@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package main
@@ -22,7 +23,6 @@ var hKeyTable = []syscall.Handle{
 }
 
 // Read string from Windows registry (no expansion).
-// Thanks to http://npf.io/2012/11/go-win-stuff/
 func (realRegistry) GetString(path regKey, valueName string) (value string, err error) {
 	handle := openKey(path, syscall.KEY_QUERY_VALUE)
 	defer syscall.RegCloseKey(handle)
@@ -30,31 +30,40 @@ func (realRegistry) GetString(path regKey, valueName string) (value string, err 
 	var typ uint32
 	var bufSize uint32
 
-	// https://msdn.microsoft.com/en-us/library/windows/desktop/ms724911(v=vs.85).aspx
-	err = syscall.RegQueryValueEx(
-		handle,
-		syscall.StringToUTF16Ptr(valueName),
-		nil,
-		&typ,
-		nil,
-		&bufSize)
-
+	name, err := syscall.UTF16PtrFromString(valueName)
 	if err != nil {
-		return
+		return "", err
 	}
 
-	data := make([]uint16, bufSize/2+1)
-
+	// First call: Get the required buffer size
+	// Pass nil for data buffer to get size in bufSize
 	err = syscall.RegQueryValueEx(
 		handle,
-		syscall.StringToUTF16Ptr(valueName),
+		name,
 		nil,
 		&typ,
-		(*byte)(unsafe.Pointer(&data[0])),
+		nil,      // nil data buffer
+		&bufSize) // receives required size
+
+	if err != nil {
+		return "", err
+	}
+
+	// Allocate buffer with the exact size needed
+	// Add 1 to handle potential rounding for UTF16
+	data := make([]uint16, bufSize/2+1)
+
+	// Second call: Actually get the data with properly sized buffer
+	err = syscall.RegQueryValueEx(
+		handle,
+		name,
+		nil,
+		&typ,
+		(*byte)(unsafe.Pointer(&data[0])), // properly sized buffer
 		&bufSize)
 
 	if err != nil {
-		return
+		return "", err
 	}
 	return syscall.UTF16ToString(data), nil
 }
@@ -94,21 +103,25 @@ func getNextEnumValue(path regKey, index uint32) (string, error) {
 	return syscall.UTF16ToString(name), err
 }
 
-// Opens a Windows registry key and returns a handle. You must close
-// the handle with `defer syscall.RegCloseKey(handle)` in the calling code.
+// Opens a Windows registry key and returns a handle. You must close the
+// handle with `defer syscall.RegCloseKey(handle)` in the calling code.
 func openKey(path regKey, desiredAccess uint32) syscall.Handle {
 	var handle syscall.Handle
 
-	// https://msdn.microsoft.com/en-us/library/windows/desktop/ms724897(v=vs.85).aspx
-	err := syscall.RegOpenKeyEx(
+	subkey, err := syscall.UTF16PtrFromString(path.lpSubKey)
+	if err != nil {
+		log.Fatalln("Error on registry path.subKey:", path.lpSubKey, err)
+	}
+
+	err = syscall.RegOpenKeyEx(
 		hKeyTable[path.hKeyIdx],
-		syscall.StringToUTF16Ptr(path.lpSubKey),
+		subkey,
 		0,
 		desiredAccess,
 		&handle)
 
 	if err != nil {
-		log.Fatalln("Cannot open registry path:", path)
+		log.Fatalln("Cannot open registry path:", path, err)
 	}
 	return handle
 }

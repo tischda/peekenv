@@ -10,7 +10,7 @@ import (
 	"os"
 )
 
-const version = "" // version is set during build
+var version = "" // version is set during build
 
 type Config struct {
 	help     bool
