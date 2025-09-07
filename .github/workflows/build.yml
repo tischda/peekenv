@@ -34,7 +34,3 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run Go Report Card action
         uses: creekorful/goreportcard-action@v1.0
-        with:
-          repo: ${{ github.repository }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          
