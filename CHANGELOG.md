@@ -1,11 +1,11 @@
 # Changelog
 
-## [v3.0.0] - 06 September 2025
+## [v3.0.0] - 07 September 2025
 
-    * Complete rewrite using "golang.org/x/sys/windows/registry"
-    * Made usage more intuitive (-f is now -o, -i is now -h)
-    * Added variable expansion option
-    * Default is now to print all variables (user + system)
+    * Rewrite using "golang.org/x/sys/windows/registry"
+    * Make Usage more intuitive (-f is now -o, -i is now -h)
+    * Add environment variable expansion option
+    * Peekenv now prints all variables (user + system) by default
 
 ## [2.0.1] - 04 June 2019
 

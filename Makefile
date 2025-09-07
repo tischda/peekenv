@@ -10,14 +10,28 @@ BUILD_DATE=$(shell date -u "+%Y-%m-%dT%H:%M:%SZ")
 GIT_COMMIT=$(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 LDFLAGS=-ldflags=all="-s -w -X \"main.name=$(PROJECT_NAME)\" -X \"main.version=$(VERSION)\" -X \"main.date=$(BUILD_DATE)\" -X \"main.commit=$(GIT_COMMIT)\""
 
+# Extract version components for goversioninfo
+XYZ_VERSION=$(shell echo $(VERSION) | sed -E 's/^v([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+VER_MAJOR = $(shell echo $(XYZ_VERSION) | cut -d. -f1)
+VER_MINOR = $(shell echo $(XYZ_VERSION) | cut -d. -f2)
+VER_PATCH = $(shell echo $(XYZ_VERSION) | cut -d. -f3)
+VER_BUILD = 0  # Set default build number if needed
 
 MAKEFLAGS += --no-print-directory
 
-all: build
+all: dist
 
 ## build: build project
-build:
+build: goversioninfo
 	go build $(LDFLAGS)
+
+goversioninfo:
+	@goversioninfo -product-name $(PROJECT_NAME) \
+                  -product-version $(VERSION) \
+                  -ver-major $(VER_MAJOR) \
+                  -ver-minor $(VER_MINOR) \
+                  -ver-patch $(VER_PATCH) \
+                  -ver-build $(VER_BUILD)	
 
 ## test: run tests with coverage
 test:
@@ -48,7 +62,7 @@ snapshot:
 	goreleaser --snapshot --skip-publish --clean
 
 ## release: make a release based on latest tag
-release: 
+release: goversioninfo
 	@echo releasing $(VERSION)
 	@sed '1,/\#\# \[${VERSION}/d;/^\#\# /Q' CHANGELOG.md > releaseinfo
 	@cat releaseinfo

@@ -1,6 +1,5 @@
 //go:build windows
 
-// Package main provides a utility to dump Windows environment variables
 package main
 
 import (
@@ -48,7 +47,6 @@ func initFlags() *Config {
 	return cfg
 }
 
-// TODO: add a test for --help
 func main() {
 	log.SetFlags(0)
 	cfg := initFlags()

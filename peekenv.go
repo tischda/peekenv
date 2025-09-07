@@ -32,17 +32,17 @@ var (
 )
 
 // peekenv handles the reading and formatting of environment variables.
-// It maintains a map of environment variables, and optional variable name filters.
+// It maintains a map of environment variables, and which variables to export (if specified).
 type peekenv struct {
 	envMap    map[string]string
 	variables []string
 }
 
-// ExportEnv reads environment variables from the registry and writes them to the provided writer.
+// ExportEnv reads environment variables from the registry and writes them to the output.
 // Parameters:
 //   - cfg: the runtime configuration specifying registry mode, output options, etc.
 //
-// Returns an error if reading from registry fails or if no environment variables are found.
+// Returns an error if reading from registry fails or no environment variables are found.
 func (p *peekenv) exportEnv(cfg *Config) error {
 
 	mode := BOTH
@@ -113,8 +113,9 @@ func (p *peekenv) exportEnv(cfg *Config) error {
 	return err
 }
 
-// getSystemVariables reads system environment variables from the registry.
-// It opens the HKEY_LOCAL_MACHINE registry key and populates p.envMap with system variables.
+// getSystemVariables opens the HKEY_LOCAL_MACHINE registry key and populates
+// p.envMap with system variables.
+//
 // Returns an error if the registry cannot be accessed or read.
 func (p *peekenv) getSystemVariables() error {
 	sysReg, err := registry.OpenKey(registry.LOCAL_MACHINE, `SYSTEM\CurrentControlSet\Control\Session Manager\Environment`, registry.READ)
@@ -125,11 +126,12 @@ func (p *peekenv) getSystemVariables() error {
 	return err
 }
 
-// getUserVariables reads user environment variables from the registry.
-// Parameters:
-//   - mergePaths: if true, merges Path and PsModulePath variables with existing values in p.envMap
+// getUserVariables opens the HKEY_CURRENT_USER registry key and populates
+// p.envMap with user variables
 //
-// It opens the HKEY_CURRENT_USER registry key and populates p.envMap with user variables.
+// Parameters:
+//   - mergePaths: if true, merges "Path" and "PsModulePath" with existing values in p.envMap
+//
 // Returns an error if the registry cannot be accessed or read.
 func (p *peekenv) getUserVariables(mergePaths bool) error {
 	userReg, err := registry.OpenKey(registry.CURRENT_USER, `Environment`, registry.READ)
@@ -141,13 +143,14 @@ func (p *peekenv) getUserVariables(mergePaths bool) error {
 }
 
 // getVariables reads environment variables from the provided registry key.
+//
 // Parameters:
 //   - reg: the registry key to read variables from
-//   - mergePaths: if true, merges "Path" and "PsModulePath" variables with existing values in p.envMap
+//   - mergePaths: if true, merges "Path" and "PsModulePath" with existing values in p.envMap
 //
-// The mergePaths flag indicates if "Path" variables should be merged
-// with existing values in p.envMap.
-// This presupposes p.envMap is already initialized with SYSTEM variables.
+// Merging presupposes that p.envMap has already been initialized with SYSTEM variables.
+// Therefore, call getSystemVariables() before calling this with mergePaths=true.
+//
 // Returns an error if the registry values cannot be read.
 func (p *peekenv) getVariables(reg registry.Key, mergePaths bool) error {
 	env, err := reg.ReadValueNames(0)
@@ -166,7 +169,7 @@ func (p *peekenv) getVariables(reg registry.Key, mergePaths bool) error {
 	return err
 }
 
-// String returns a formatted string representation of all variables.
+// String returns string representation of all variables, formatted like this:
 //
 // [M2_HOME]
 // c:\usr\bin\maven
@@ -202,7 +205,9 @@ func (p *peekenv) String() string {
 	return sb.String()
 }
 
-// containsIgnoreCase checks if a string slice contains a target string using case-insensitive comparison.
+// containsIgnoreCase checks if a string slice contains a target string using
+// case-insensitive comparison.
+//
 // Parameters:
 //   - slice: the string slice to search in
 //   - str: the target string to search for
