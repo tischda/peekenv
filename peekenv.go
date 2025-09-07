@@ -38,7 +38,8 @@ type peekenv struct {
 	variables []string
 }
 
-// ExportEnv reads environment variables from the registry and writes them to the output.
+// exportEnv reads environment variables from the registry and writes them to the output.
+//
 // Parameters:
 //   - cfg: the runtime configuration specifying registry mode, output options, etc.
 //
@@ -54,6 +55,26 @@ func (p *peekenv) exportEnv(cfg *Config) error {
 		mode = USER
 	}
 
+	if err := p.readRegistry(mode); err != nil {
+		return err
+	}
+
+	// Expand variables if requested
+	if cfg.expand {
+		for k, v := range p.envMap {
+			p.envMap[k] = expandVariable(v)
+		}
+	}
+	return p.writeOutput(cfg, mode)
+}
+
+// readRegistry reads environment variables from the Windows registry based on the specified mode.
+//
+// Parameters:
+//   - mode: specifies which registry keys to read from (USER, MACHINE, or BOTH)
+//
+// Returns an error if registry access fails or no environment variables are found.
+func (p *peekenv) readRegistry(mode RegistryMode) error {
 	switch mode {
 	case USER:
 		if err := p.getUserVariables(false); err != nil {
@@ -76,15 +97,19 @@ func (p *peekenv) exportEnv(cfg *Config) error {
 	if len(p.envMap) == 0 {
 		return fmt.Errorf("no environment variables found")
 	}
+	return nil
+}
 
-	// Expand variables if requested
-	if cfg.expand {
-		for k, v := range p.envMap {
-			p.envMap[k] = expandVariable(v)
-		}
-	}
+// writeOutput writes the formatted environment variables to the specified output.
+//
+// Parameters:
+//   - cfg: the runtime configuration containing output file path and header options
+//   - mode: the registry mode used for header generation
+//
+// Returns an error if file creation, header writing, or variable writing fails.
+func (p *peekenv) writeOutput(cfg *Config, mode RegistryMode) error {
 
-	// open output file or use stdout
+	// Open output file or use stdout
 	var err error
 	var file *os.File
 	if cfg.output == "stdout" {
