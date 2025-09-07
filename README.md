@@ -1,7 +1,7 @@
 [![Build Status](https://github.com/tischda/peekenv/actions/workflows/build.yml/badge.svg)](https://github.com/tischda/peekenv/actions/workflows/build.yml)
 [![Test Status](https://github.com/tischda/peekenv/actions/workflows/test.yml/badge.svg)](https://github.com/tischda/peekenv/actions/workflows/test.yml)
 [![Coverage Status](https://coveralls.io/repos/tischda/peekenv/badge.svg)](https://coveralls.io/r/tischda/peekenv)
-[![Go Report Card](https://goreportcard.com/badge/github.com/tischda/peekenv)](https://goreportcard.com/report/github.com/tischda/peekenv)
+[![Go Report Card](https://goreportcard.com/badge/github.com/tischda/peekenv/v3)](https://goreportcard.com/report/github.com/tischda/peekenv/v3)
 
 # peekenv
 
