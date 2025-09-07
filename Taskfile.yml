@@ -30,7 +30,9 @@ tasks:
   goversioninfo:
     desc: Build go version information
     cmds:
-      - goversioninfo -product-name {{.PROJECT_NAME}} -product-version {{.VERSION}} -ver-major {{.VER_MAJOR}} -ver-minor {{.VER_MINOR}} -ver-patch {{.VER_PATCH}} -ver-build {{.VER_BUILD}}
+      - goversioninfo -product-name {{.PROJECT_NAME}} -product-version {{.VERSION}} -ver-major {{.VER_MAJOR}} -ver-minor {{.VER_MINOR}} -ver-patch {{.VER_PATCH}} -ver-build {{.VER_BUILD}} -o resource_386.syso
+      - goversioninfo -product-name {{.PROJECT_NAME}} -product-version {{.VERSION}} -ver-major {{.VER_MAJOR}} -ver-minor {{.VER_MINOR}} -ver-patch {{.VER_PATCH}} -ver-build {{.VER_BUILD}} -64 -o resource_amd64.syso
+      - goversioninfo -product-name {{.PROJECT_NAME}} -product-version {{.VERSION}} -ver-major {{.VER_MAJOR}} -ver-minor {{.VER_MINOR}} -ver-patch {{.VER_PATCH}} -ver-build {{.VER_BUILD}} -arm -o resource_arm64.syso
 
   test:
     desc: Run tests with coverage
@@ -84,7 +86,7 @@ tasks:
       - rm -rf dist
       - rm -f releaseinfo
       - rm -f coverage.out
-      - rm -f resource.syso
+      - rm -f resource_*.syso
 
   version:
     desc: Show version information

@@ -31,7 +31,24 @@ goversioninfo:
                   -ver-major $(VER_MAJOR) \
                   -ver-minor $(VER_MINOR) \
                   -ver-patch $(VER_PATCH) \
-                  -ver-build $(VER_BUILD)	
+                  -ver-build $(VER_BUILD) \
+                  -o resource_386.syso
+	@goversioninfo -product-name $(PROJECT_NAME) \
+                  -product-version $(VERSION) \
+                  -ver-major $(VER_MAJOR) \
+                  -ver-minor $(VER_MINOR) \
+                  -ver-patch $(VER_PATCH) \
+                  -ver-build $(VER_BUILD) \
+                  -64 \
+                  -o resource_amd64.syso
+	@goversioninfo -product-name $(PROJECT_NAME) \
+                  -product-version $(VERSION) \
+                  -ver-major $(VER_MAJOR) \
+                  -ver-minor $(VER_MINOR) \
+                  -ver-patch $(VER_PATCH) \
+                  -ver-build $(VER_BUILD) \
+                  -arm \
+                  -o resource_arm64.syso
 
 ## test: run tests with coverage
 test:
@@ -79,7 +96,7 @@ clean:
 	rm -rf dist
 	rm -f coverage.out
 	rm -f releaseinfo
-	rm -f resource.syso
+	rm -f resource_*.syso
 
 ## version: show version info
 version:

@@ -3,4 +3,4 @@ peekenv
 coverage.out
 dist/
 releaseinfo
-resource.syso
+resource*.syso
