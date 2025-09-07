@@ -48,6 +48,7 @@ func initFlags() *Config {
 	return cfg
 }
 
+// TODO: add a test for --help
 func main() {
 	log.SetFlags(0)
 	cfg := initFlags()
@@ -94,37 +95,13 @@ EXAMPLES:`)
 		return
 	}
 
-	if err := process(cfg); err != nil {
-		log.Fatalln(err)
-	}
-}
-
-func process(cfg *Config) error {
-	var file *os.File
-	var err error
-
-	if cfg.output == "stdout" {
-		file = os.Stdout
-	} else {
-		file, err = os.Create(cfg.output)
-		if err != nil {
-			return fmt.Errorf("creating output file: %w", err)
-		}
-	}
-	defer file.Close()
-
+	// Process the environment variables
 	peekenv := peekenv{
 		envMap:    make(map[string]string),
 		variables: flag.Args(),
 	}
 
-	mode := BOTH
-	if cfg.machine && cfg.user {
-		mode = BOTH
-	} else if cfg.machine {
-		mode = MACHINE
-	} else if cfg.user {
-		mode = USER
+	if err := peekenv.exportEnv(cfg); err != nil {
+		log.Fatalln(err)
 	}
-	return peekenv.exportEnv(mode, file, cfg)
 }

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bytes"
+	"os"
 	"strings"
 	"testing"
 )
@@ -88,26 +88,39 @@ func TestPeekenv_String(t *testing.T) {
 }
 
 func TestPeekenv_ExportEnv_Both(t *testing.T) {
+	// Create a temporary file for output
+	tmpFile, err := os.CreateTemp("", "peekenv_test_both_*.txt")
+	if err != nil {
+		t.Fatalf("Failed to create temporary file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name()) // Will run after Close() due to LIFO
+	defer tmpFile.Close()           // Will run first, ensuring file is closed before removal
+
 	// Create a peekenv instance that will read from real registry
 	p := &peekenv{
 		envMap:    make(map[string]string),
 		variables: []string{}, // No filters, read all variables
 	}
 
-	var buf bytes.Buffer
 	cfg := &Config{
+		output: tmpFile.Name(),
 		header: true,
 		expand: false,
 	}
 
 	// Execute the test with real registry reading
-	err := p.exportEnv(BOTH, &buf, cfg)
+	err = p.exportEnv(cfg)
 
 	if err != nil {
 		t.Fatalf("exportEnv() error = %v", err)
 	}
 
-	output := buf.String()
+	// Read the output from the temporary file
+	content, err := os.ReadFile(tmpFile.Name())
+	if err != nil {
+		t.Fatalf("Failed to read temporary file: %v", err)
+	}
+	output := string(content)
 
 	// Check for expected header content
 	expectedHeaders := []string{
@@ -177,26 +190,40 @@ func TestPeekenv_ExportEnv_Both(t *testing.T) {
 }
 
 func TestPeekenv_ExportEnv_Machine_Expand_Windir(t *testing.T) {
+	// Create a temporary file for output
+	tmpFile, err := os.CreateTemp("", "peekenv_test_*.txt")
+	if err != nil {
+		t.Fatalf("Failed to create temporary file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name()) // Will run after Close() due to LIFO
+	defer tmpFile.Close()           // Will run first, ensuring file is closed before removal
+
 	// Create a peekenv instance that will read from real registry
 	p := &peekenv{
 		envMap:    make(map[string]string),
 		variables: []string{"windir"}, // Filter for only windir variable
 	}
 
-	var buf bytes.Buffer
 	cfg := &Config{
-		header: false, // No header for cleaner output
-		expand: true,  // Expand environment variables
+		machine: true, // Read only machine variables
+		output:  tmpFile.Name(),
+		header:  false, // No header for cleaner output
+		expand:  true,  // Expand environment variables
 	}
 
 	// Execute the test with machine registry reading only
-	err := p.exportEnv(MACHINE, &buf, cfg)
+	err = p.exportEnv(cfg)
 
 	if err != nil {
 		t.Fatalf("exportEnv() error = %v", err)
 	}
 
-	output := buf.String()
+	// Read the output from the temporary file
+	content, err := os.ReadFile(tmpFile.Name())
+	if err != nil {
+		t.Fatalf("Failed to read temporary file: %v", err)
+	}
+	output := string(content)
 
 	// Verify that windir variable exists and is properly formatted
 	if !strings.Contains(output, "[windir]") {

@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -39,13 +40,21 @@ type peekenv struct {
 
 // ExportEnv reads environment variables from the registry and writes them to the provided writer.
 // Parameters:
-//   - reg: the registry mode specifying which registry keys to read from (USER, MACHINE, or BOTH)
-//   - w: the writer to output the formatted environment variables to
-//   - printHeader: if true, includes a header with registry path and timestamp
+//   - cfg: the runtime configuration specifying registry mode, output options, etc.
 //
 // Returns an error if reading from registry fails or if no environment variables are found.
-func (p *peekenv) exportEnv(reg RegistryMode, w io.Writer, cfg *Config) error {
-	switch reg {
+func (p *peekenv) exportEnv(cfg *Config) error {
+
+	mode := BOTH
+	if cfg.machine && cfg.user {
+		mode = BOTH
+	} else if cfg.machine {
+		mode = MACHINE
+	} else if cfg.user {
+		mode = USER
+	}
+
+	switch mode {
 	case USER:
 		if err := p.getUserVariables(false); err != nil {
 			return fmt.Errorf("reading user environment variables: %w", err)
@@ -55,6 +64,7 @@ func (p *peekenv) exportEnv(reg RegistryMode, w io.Writer, cfg *Config) error {
 			return fmt.Errorf("reading system environment variables: %w", err)
 		}
 	default:
+		// order matters, first system, then user (so user can override)
 		if err := p.getSystemVariables(); err != nil {
 			return fmt.Errorf("reading system environment variables: %w", err)
 		}
@@ -67,23 +77,39 @@ func (p *peekenv) exportEnv(reg RegistryMode, w io.Writer, cfg *Config) error {
 		return fmt.Errorf("no environment variables found")
 	}
 
-	if cfg.header {
-		header := headerStrings[reg]
-		now := time.Now().Format("2006-01-02 15:04:05 -0700 MST")
-		header += fmt.Sprintf("# Exported on %s\n\n", now)
-		_, err := io.WriteString(w, header)
-		if err != nil {
-			return fmt.Errorf("writing header: %w", err)
-		}
-	}
-
+	// Expand variables if requested
 	if cfg.expand {
 		for k, v := range p.envMap {
 			p.envMap[k] = expandVariable(v)
 		}
 	}
 
-	_, err := io.WriteString(w, p.String())
+	// open output file or use stdout
+	var err error
+	var file *os.File
+	if cfg.output == "stdout" {
+		file = os.Stdout
+	} else {
+		file, err = os.Create(cfg.output)
+		if err != nil {
+			return fmt.Errorf("creating output file: %w", err)
+		}
+	}
+	defer file.Close()
+
+	// Print header if requested
+	if cfg.header {
+		header := headerStrings[mode]
+		now := time.Now().Format("2006-01-02 15:04:05 -0700 MST")
+		header += fmt.Sprintf("# Exported on %s\n\n", now)
+		_, err := io.WriteString(file, header)
+		if err != nil {
+			return fmt.Errorf("writing header: %w", err)
+		}
+	}
+
+	// Print variables in proper format
+	_, err = io.WriteString(file, p.String())
 	return err
 }
 
@@ -154,19 +180,23 @@ func (p *peekenv) getVariables(reg registry.Key, mergePaths bool) error {
 func (p *peekenv) String() string {
 	var sb strings.Builder
 
-	// Get sorted keys for consistent alphabetical output
+	// Sort keys for consistent alphabetical output (case-insensitive)
+	keyMap := make(map[string]string)
 	keys := make([]string, 0, len(p.envMap))
 	for k := range p.envMap {
-		keys = append(keys, k)
+		keys = append(keys, strings.ToLower(k))
+		keyMap[strings.ToLower(k)] = k
 	}
 	sort.Strings(keys)
 
+	// Format output with a section header for each variable
 	for i, k := range keys {
 		if i > 0 {
 			sb.WriteString("\n\n")
 		}
-		sb.WriteString("[" + k + "]\n")
-		sb.WriteString(strings.ReplaceAll(p.envMap[k], ";", "\n"))
+		originalKey := keyMap[k]
+		sb.WriteString("[" + originalKey + "]\n")
+		sb.WriteString(strings.ReplaceAll(p.envMap[originalKey], ";", "\n"))
 	}
 	sb.WriteString("\n")
 	return sb.String()
