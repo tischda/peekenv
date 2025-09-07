@@ -10,7 +10,7 @@ Retrieves environment variables from the Windows registry.
 ### Install
 
 ~~~
-go install github.com/tischda/peekenv@latest
+go install github.com/tischda/peekenv/v3@latest
 ~~~
 
 ### Usage

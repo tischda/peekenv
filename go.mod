@@ -1,4 +1,4 @@
-module github.com/tischda/peekenv
+module github.com/tischda/peekenv/v3
 
 go 1.25
 
