@@ -120,7 +120,7 @@ func (p *peekenv) writeOutput(cfg *Config, mode RegistryMode) error {
 			return fmt.Errorf("creating output file: %w", err)
 		}
 	}
-	defer file.Close()
+	defer file.Close()  //nolint:errcheck
 
 	// Print header if requested
 	if cfg.header {
@@ -145,7 +145,7 @@ func (p *peekenv) writeOutput(cfg *Config, mode RegistryMode) error {
 func (p *peekenv) getSystemVariables() error {
 	sysReg, err := registry.OpenKey(registry.LOCAL_MACHINE, `SYSTEM\CurrentControlSet\Control\Session Manager\Environment`, registry.READ)
 	if err == nil {
-		defer sysReg.Close()
+		defer sysReg.Close()  //nolint:errcheck
 		err = p.getVariables(sysReg, false)
 	}
 	return err
@@ -161,7 +161,7 @@ func (p *peekenv) getSystemVariables() error {
 func (p *peekenv) getUserVariables(mergePaths bool) error {
 	userReg, err := registry.OpenKey(registry.CURRENT_USER, `Environment`, registry.READ)
 	if err == nil {
-		defer userReg.Close()
+		defer userReg.Close()  //nolint:errcheck
 		err = p.getVariables(userReg, mergePaths)
 	}
 	return err
