@@ -101,8 +101,12 @@ clean:
 ## version: show version info
 version:
 	@echo "$(PROJECT_NAME) $(VERSION), built on $(BUILD_DATE) (commit: $(GIT_COMMIT))"
+	@echo
 	@echo "LDFLAGS:"
 	@echo "    $(LDFLAGS)"
+	@echo
+	@echo "CHANGELOG:"
+	@sed '1,/\#\# \[${VERSION}/d;/^\#\# /Q' CHANGELOG.md
 
 ## help: display this help
 help: Makefile

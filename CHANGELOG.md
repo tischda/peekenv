@@ -7,7 +7,7 @@
 * Add environment variable expansion option
 * Peekenv now prints all variables (user + system) by default
 
-## [2.0.1] - 04 June 2019
+## [v2.0.1] - 04 June 2019
 
 * Fix error message formatting issue
 

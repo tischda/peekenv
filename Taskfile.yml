@@ -93,4 +93,9 @@ tasks:
     cmds:
       - "echo {{.PROJECT_NAME}} {{.VERSION}}, built on {{.BUILD_DATE}} \\(commit: {{.GIT_COMMIT}}\\)"
       - "echo LDFLAGS:"
+      - echo ""
       - echo "    {{.LDFLAGS}}"
+      - echo
+      - echo "CHANGELOG:"
+      - sed '1,/\#\# \[${VERSION}/d;/^\#\# /Q' CHANGELOG.md
+
