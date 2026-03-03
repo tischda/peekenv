@@ -2,7 +2,7 @@
 [![Test Status](https://github.com/tischda/peekenv/actions/workflows/test.yml/badge.svg)](https://github.com/tischda/peekenv/actions/workflows/test.yml)
 [![Coverage Status](https://coveralls.io/repos/tischda/peekenv/badge.svg)](https://coveralls.io/r/tischda/peekenv)
 [![Linter Status](https://github.com/tischda/peekenv/actions/workflows/linter.yml/badge.svg)](https://github.com/tischda/peekenv/actions/workflows/linter.yml)
-[![License](https://img.shields.io/github/license/tischda/peekenv)](/LICENSE)
+[![License](https://img.shields.io/github/license/tischda/peekenv.svg)](/LICENSE)
 [![Release](https://img.shields.io/github/release/tischda/peekenv.svg)](https://github.com/tischda/peekenv/releases/latest)
 
 
